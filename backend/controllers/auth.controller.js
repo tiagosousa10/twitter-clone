@@ -1,60 +1,62 @@
-import { generateTokenAndSetCookie } from "../lib/utils/generateToken";
-import User from "../models/user.model";
-import bcrypt from "bcrypt";
+import { generateTokenAndSetCookie } from "../lib/utils/generateToken.js";
+import User from "../models/user.model.js";
+import bcrypt from "bcryptjs";
 
-export const signup = async (req,res) => {
- try {
-  const {fullName,username,email,password} = req.body;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const signup = async (req, res) => {
+	try {
+		const { fullName, username, email, password } = req.body;
 
-  if(!emailRegex.test(email)) {
-    return res.status(400).json({error: "Invalid email format"});
-  }
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email)) {
+			return res.status(400).json({ error: "Invalid email format" });
+		}
 
-  const existingUser = await User.findOne({ username }) //is the same as {username: username}
-  if(existingUser) {
-    return res.status(400).json({error:"Username is already taken"})
-  }
+		const existingUser = await User.findOne({ username });
+		if (existingUser) {
+			return res.status(400).json({ error: "Username is already taken" });
+		}
 
-  const existingEmail = await User.findOne({ email }) //is the same as {email: email}
-  if(existingUser) {
-    return res.status(400).json({error:"Email is already taken"})
-  }
+		const existingEmail = await User.findOne({ email });
+		if (existingEmail) {
+			return res.status(400).json({ error: "Email is already taken" });
+		}
 
-  // hash the password
+		if (password.length < 6) {
+			return res.status(400).json({ error: "Password must be at least 6 characters long" });
+		}
 
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password,salt)
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash(password, salt);
 
-  const newUser = new User({
-    fullname: fullName,
-    username: username,
-    email: email,
-    password: hashedPassword
-  })
+		const newUser = new User({
+			fullName,
+			username,
+			email,
+			password: hashedPassword,
+		});
 
-  if(newUser) {
-    generateTokenAndSetCookie(newUser._id,res); //generate a token and set it as a cookie
-    await newUser.save(); //save the user to the database
+		if (newUser) {
+			generateTokenAndSetCookie(newUser._id, res);
+			await newUser.save();
 
-    res.status(201).json({ //message: "User created successfully"
-      _id: newUser._id,
-      fullName: newUser.fullName,
-      email: newUser.email,
-      followers: newUser.followers,
-      followers: newUser.following,
-      profileImg: newUser.profileImg,
-      coverImg: newUser.coverImg,
-    }) 
-  } else {
-    res.status(400).json({error: "Invalid user data"})
-  }
-
- } catch (error) {
-  console.log("error: ",error.message)
-  res.status(500).json({error:error.message})
- }
-}
+			res.status(201).json({
+				_id: newUser._id,
+				fullName: newUser.fullName,
+				username: newUser.username,
+				email: newUser.email,
+				followers: newUser.followers,
+				following: newUser.following,
+				profileImg: newUser.profileImg,
+				coverImg: newUser.coverImg,
+			});
+		} else {
+			res.status(400).json({ error: "Invalid user data" });
+		}
+	} catch (error) {
+		console.log("Error in signup controller", error.message);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+};
 
 export const login = async (req,res) => {
   res.json({
