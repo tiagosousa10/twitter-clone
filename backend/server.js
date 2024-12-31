@@ -8,7 +8,7 @@ import cookieParser from 'cookie-parser'
 
 dotenv.config()
 
-const app = express()
+const app = express() // create express app
 const PORT = process.env.PORT //5000
 
 app.use(express.json()) // to parse req.body
