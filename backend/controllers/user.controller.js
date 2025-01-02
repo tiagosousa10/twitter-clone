@@ -1,3 +1,4 @@
+import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 
 export const getUserProfile = async (req,res) => {
@@ -39,9 +40,17 @@ export const followUnfollowUser = async (req,res) => {
       // follow user
       await User.findByIdAndUpdate(id, {$push: {followers: req.user._id}}) // add current user to followers of userToModify
       await User.findByIdAndUpdate(req.user._id, {$push: {following: id}}) // add userToModify to following of current user
+     
       // send notification to userToModify
-      res.status(200).json({message:'User followed successfully'})
+      const newNotification = new Notification({
+        type:'follow',
+        from:req.user._id,
+        to:userToModify._id,
+      })
 
+      await newNotification.save()
+      //TODO : return the id of the user as a response
+      res.status(200).json({message:'User followed successfully'})
     }
 
   } catch (error) {
@@ -49,4 +58,29 @@ export const followUnfollowUser = async (req,res) => {
     res.status(500).json({error : error.message})
   }
 
+}
+
+export const getSuggestedUsers = async (req,res) => {
+  try {
+    const userId = req.user._id;
+    const usersFollowedByMe = await User.findById(userId).select('following') // find users followed by me
+    
+    const users = await User.aggregate([
+      {
+        $match: {
+          _id: {$ne: userId} // exclude current user
+        }
+    },
+    {$sample: {size:10}}// get 10 random users
+  ])
+
+  const filteredUsers= users.filter(user=> !usersFollowedByMe.following.includes(user._id)) // filter out users already followed by me
+  const suggestedUsers = filteredUsers.slice(0,4) // get first 4 users
+
+  suggestedUsers.forEach(user => user.password = null ) 
+
+  res.status(200).json(suggestedUsers)
+  } catch(error) {
+
+  }
 }
