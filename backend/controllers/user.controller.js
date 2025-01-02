@@ -1,5 +1,7 @@
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
+import bcrypt from 'bcryptjs';
+
 
 export const getUserProfile = async (req,res) => {
   const {username} = req.params;
@@ -81,6 +83,44 @@ export const getSuggestedUsers = async (req,res) => {
 
   res.status(200).json(suggestedUsers)
   } catch(error) {
+
+  }
+}
+
+export const updateUser = async (req,res) => {
+  const {fullName,email,username,currentPassword,newPassword,bio,link} = req.body;
+  let {profileImg, coverImg} = req.body;
+
+  const userId= req.user._id;
+
+  try {
+    const user= await User.findById(userId); // find user by id
+    if(!user) return res.status(404).json({message: 'User not found'}) // if user not found
+
+    if(!newPassword && currentPassword) {
+      return res.status(400).json({message:'Please enter new password'})
+    }
+
+    if(currentPassword && newPassword) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password); // compare current password with password in db
+      if(!isMatch) return res.status(400).json({message:'Invalid password'}) // if password is incorrect
+      if(newPassword.length < 6) { // if new password is less than 6 characters
+        return res.status(400).json({message:'Password must be at least 6 characters long'})
+      }
+
+      const salt = await bcrypt.genSalt(10); // generate salt
+      user.password = await bcrypt.hash(newPassword, salt); // hash new password
+    }
+
+    if(profileImg) {
+      
+    }
+
+    if(coverImg) {
+
+    }
+
+  } catch (error) {
 
   }
 }
