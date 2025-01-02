@@ -1,6 +1,9 @@
+import bcrypt from 'bcryptjs';
+import {v2 as cloudinary} from 'cloudinary';
+
+
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
-import bcrypt from 'bcryptjs';
 
 
 export const getUserProfile = async (req,res) => {
@@ -94,7 +97,7 @@ export const updateUser = async (req,res) => {
   const userId= req.user._id;
 
   try {
-    const user= await User.findById(userId); // find user by id
+    let user= await User.findById(userId); // find user by id
     if(!user) return res.status(404).json({message: 'User not found'}) // if user not found
 
     if(!newPassword && currentPassword) {
@@ -113,14 +116,42 @@ export const updateUser = async (req,res) => {
     }
 
     if(profileImg) {
-      
+      if(user.profileImg) {
+        await cloudinary.uploader.destroy(user.profileImg.split("/").pop().split(".")[0]) // delete previous profile image from cloudinary
+      }
+
+     const uploadedResponse = await cloudinary.uploader.upload(profileImg)
+      profileImg = uploadedResponse.secure_url;
     }
+
 
     if(coverImg) {
+      if(user.coverImg) {
+        await cloudinary.uploader.destroy(user.coverImg.split("/").pop().split(".")[0]) // delete previous cover image from cloudinary
+      }
 
+      const uploadedResponse = await cloudinary.uploader.upload(coverImg)
+      coverImg= uploadedResponse.secure_url;
     }
 
-  } catch (error) {
+    
+    user.fullName = fullName || user.fullName; // update user fields
+    user.email = email || user.email; 
+    user.username = username || user.username;
+    user.bio = bio || user.bio;
+    user.link = link || user.link;
+    user.profileImg = profileImg || user.profileImg;
+    user.coverImg = coverImg || user.coverImg;
 
+    user = await user.save(); // save user
+
+    //password should not be sent to the client
+    user.password = null;
+
+    return res.status(200).json(user) // send updated user as response
+
+  } catch (error) {
+    console.log("Error in updateUser",error.message)
+    res.status(500).json({error : error.message})
   }
 }
