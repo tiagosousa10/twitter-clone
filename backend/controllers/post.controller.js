@@ -122,3 +122,21 @@ export const likeUnlikePost = async(req,res) => {
   }
 }
 
+export const getAllPosts = async (req,res) => {
+  try {
+    const posts = await Post.find().sort({createdAt: -1}).populate({
+      path: "user", // populate user field from User model
+      select: "-password" // exclude password field
+    }) // get all posts and sort by createdAt in descending order
+
+    if(posts.length === 0) {
+      return res.status(200).json([]) // return empty array if no posts
+    }
+
+    res.status(200).json(posts)
+
+  } catch( error) {
+    console.log("Error in getAllPosts controller: ", error.message)
+    res.status(500).json({error: "Internal server error"})
+  }
+}
