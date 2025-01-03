@@ -99,10 +99,12 @@ export const likeUnlikePost = async(req,res) => {
     if(userLikedPost) { // if user already liked post
       //unlike post
       await Post.updateOne({_id:postId}, {$pull: {likes:userId}})
+      await User.updateOne({_id:userId}, {$pull: {likedPosts:postId}})
       res.status(200).json({message:"Post unliked successfully"})
     } else {
       //like post
       post.likes.push(userId) // add user id to likes array
+      await User.updateOne({_id:userId}, {$push: {likedPosts: postId}}) // add post id to likedPosts array
       await post.save() // save post
 
       const notification = new Notification({
@@ -124,10 +126,13 @@ export const likeUnlikePost = async(req,res) => {
 
 export const getAllPosts = async (req,res) => {
   try {
-    const posts = await Post.find().sort({createdAt: -1}).populate({
+    const posts = await Post.find().sort({createdAt: -1}).populate({ // get all posts and sort by createdAt in descending order
       path: "user", // populate user field from User model
       select: "-password" // exclude password field
-    }) // get all posts and sort by createdAt in descending order
+    }).populate({
+      path: "comments.user", // populate comments.user field from User model
+      select: "-password" // exclude password field
+    })
 
     if(posts.length === 0) {
       return res.status(200).json([]) // return empty array if no posts
@@ -137,6 +142,31 @@ export const getAllPosts = async (req,res) => {
 
   } catch( error) {
     console.log("Error in getAllPosts controller: ", error.message)
+    res.status(500).json({error: "Internal server error"})
+  }
+}
+
+export const getLikedPosts = async (req,res) => {
+  const userId = req.params.id; // user id
+
+  try {
+    const user = await User.findById(userId) // find user by id
+    if(!user) return res.status(404).json({error:"User not found"})
+     
+
+    const likedPosts = await Post.find({_id: {$in: user.likedPosts}})  // find posts where post id is in likedPosts array of user
+    .populate({
+      path:"user",
+      select:"-password"
+    }).populate({
+      path:"comments.user",
+      select:"-password"
+    })
+
+    res.status(200).json(likedPosts)
+
+  } catch(error) {
+    console.log("Error in getLikedPosts controller: ", error.message)
     res.status(500).json({error: "Internal server error"})
   }
 }
