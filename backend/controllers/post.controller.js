@@ -1,3 +1,4 @@
+import Notification from "../models/notification.model.js";
 import Post from "../models/post.model.js";
 import User from "../models/user.model.js";
 
@@ -84,3 +85,40 @@ export const commentOnPost = async(req,res) => {
     res.status(500).json({error: "Internal server error"})
   }
 }
+
+export const likeUnlikePost = async(req,res) => {
+  try {
+    const userId = req.user._id; // user id
+    const {id:postId} = req.params;
+
+    const post = await Post.findById(postId) // post id
+    if(!post) return res.status(404).json({error:"Post not found"})
+    
+    const userLikedPost = post.likes.includes(userId) // check if user already liked post
+
+    if(userLikedPost) { // if user already liked post
+      //unlike post
+      await Post.updateOne({_id:postId}, {$pull: {likes:userId}})
+      res.status(200).json({message:"Post unliked successfully"})
+    } else {
+      //like post
+      post.likes.push(userId) // add user id to likes array
+      await post.save() // save post
+
+      const notification = new Notification({
+        from: userId,
+        to: post.user,
+        type: "like",
+      })
+
+      await notification.save() // save notification
+
+      res.status(200).json({message:"Post liked successfully"})
+    }
+
+  } catch(error) {
+    console.log("Error in likeUnlikePost controller:", error.message)
+    res.status(500).json({error: "Internal server error"})
+  }
+}
+
