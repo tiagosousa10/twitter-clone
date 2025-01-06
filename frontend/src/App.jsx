@@ -22,6 +22,7 @@ function App() {
       try {
         const res = await fetch('/api/auth/me')
         const data = await res.json()
+        if(data.error) return null;
         if(!res.ok) throw new Error(data.error || 'Failed to fetch user');
 
         console.log('authUser is here: ',data);
@@ -42,9 +43,10 @@ function App() {
     )
    }
 
+
   return (
     <div className="flex max-w-6xl mx-auto">   
-      <Sidebar/> {/*common component */}
+      {authUser && <Sidebar/>} {/*common component */}
       <Routes>
         <Route path="/" element={authUser ? <HomePage/> : <Navigate to={'/login'} />}/>
         <Route path="/login" element={!authUser ? <LoginPage/> : <Navigate  to={'/'} /> }/>
@@ -52,7 +54,7 @@ function App() {
         <Route path="/notifications" element={authUser ? <NotificationPage/> : <Navigate to={'/login'} />} />
         <Route path="/profile/:username" element={authUser ? <ProfilePage/> : <Navigate to={'/login'}  />} />
       </Routes>   
-      <RightPanel/> {/*common component */}
+      {authUser && <RightPanel/>} {/*common component */}
       <Toaster/>
     </div>
   )
