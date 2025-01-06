@@ -14,8 +14,9 @@ import { useQuery } from "@tanstack/react-query"
 import LoadingSpinner from "./components/common/LoadingSpinner"
 
 
-function App() {
-   const {data: authUser, isLoading, error, isError} = useQuery({
+function App() { 
+   const {data: authUser, isLoading} = useQuery({
+    //we use queryKey to create a unique key for the query
     queryKey: ['authUser'],
     queryFn: async () => {
       try {
@@ -29,7 +30,8 @@ function App() {
       catch(error) {
         throw new Error(error);
       }
-    }
+    },
+    retry:false 
    })
 
    if(isLoading) {
