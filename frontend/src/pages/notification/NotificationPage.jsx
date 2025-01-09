@@ -41,12 +41,14 @@ const NotificationPage = () => {
 		},
 		onSuccess: () => {
 			toast.success("Notifications deleted successfully");
-			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			queryClient.invalidateQueries({ queryKey: ["notifications"] }); // invalidate the query to refresh the notifications
 		},
 		onError: (error) => {
 			toast.error(error.message);
 		},
 	});
+
+
 
 	return (
 		<>
