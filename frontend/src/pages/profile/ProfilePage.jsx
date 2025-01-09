@@ -14,6 +14,8 @@ import { MdEdit } from "react-icons/md";
 import { useQuery } from "@tanstack/react-query";
 import { formatMemberSinceDate } from "../../utils/date";
 
+import useFollow from "../../hooks/useFollow";
+
 const ProfilePage = () => {
 
 	const [coverImg, setCoverImg] = useState(null);
@@ -25,7 +27,11 @@ const ProfilePage = () => {
 
 	const {username} = useParams() // username from url
 
-	const isMyProfile = true;
+	const {follow,isPending} = useFollow()
+
+	const {data:authUser} = useQuery({
+		queryKey: ['authUser']})
+
 	const {data:user,	isLoading, refetch, isRefetching} = useQuery({
 		queryKey:['userProfile'],
 		queryFn: async () => {
@@ -42,19 +48,22 @@ const ProfilePage = () => {
 	}
 })
 
-const handleImgChange = (e, state) => {
-	const file = e.target.files[0];
-	if (file) {
-		const reader = new FileReader();
-		reader.onload = () => {
-			state === "coverImg" && setCoverImg(reader.result);
-			state === "profileImg" && setProfileImg(reader.result);
-		};
-		reader.readAsDataURL(file);
-	}
-};
+	const isMyProfile = authUser._id === user?.id; // check if user is my profile
+	const memberSinceDate = formatMemberSinceDate(user?.createdAt);
+	const amIFollowing = authUser?.following.includes(user?._id);
 
-const memberSinceDate = formatMemberSinceDate(user?.createdAt);
+	const handleImgChange = (e, state) => {
+		const file = e.target.files[0];
+		if (file) {
+			const reader = new FileReader();
+			reader.onload = () => {
+				state === "coverImg" && setCoverImg(reader.result);
+				state === "profileImg" && setProfileImg(reader.result);
+			};
+			reader.readAsDataURL(file);
+		}
+	};
+
 
 	useEffect(() => {
 		refetch() // refetch when username changes
@@ -129,9 +138,11 @@ const memberSinceDate = formatMemberSinceDate(user?.createdAt);
 								{!isMyProfile && (
 									<button
 										className='btn btn-outline rounded-full btn-sm'
-										onClick={() => alert("Followed successfully")}
+										onClick={() => follow(user._id)}
 									>
-										Follow
+										{isPending && "Loading..."}
+										{!isPending && amIFollowing && "Unfollow"}
+										{!isPending && !amIFollowing && "Follow"}
 									</button>
 								)}
 								{(coverImg || profileImg) && (
